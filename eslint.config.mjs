@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Offline image-grading tooling (CommonJS, not shipped)
+    "design/**",
   ]),
 ]);
 

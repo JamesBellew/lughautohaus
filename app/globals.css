@@ -1,26 +1,216 @@
 @import "tailwindcss";
 
+/*
+ * Lugh Autohaus tokens — minimal and monochrome.
+ * The photography carries the colour. Neutrals are true greys (no brown cast),
+ * icy blue is reserved for focus and text links, bronze lives only in the wordmark.
+ *
+ * Contrast on --bg (#121213):
+ *   frost 16.9 · silver 13.1 · muted 8.1 · faint 5.9 · ice 8.0 · error 5.8
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #121213;
+  --bg-2: #1a1a1c; /* cards, panels */
+  --surface: #222225; /* inputs, elevated */
+  --raised: #2c2c30;
+
+  --line: #26262a;
+  --line-strong: #3a3a3f;
+
+  --frost: #f2f3f5;
+  --silver: #d3d8df;
+  --muted: #a8abb2;
+  --faint: #8e9199;
+
+  --ice: #7db0c9;
+  --copper-text: #c97b5f;
+
+  --glass: rgb(18 18 19 / 0.6);
+  --glass-strong: rgb(18 18 19 / 0.82);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg: var(--bg);
+  --color-bg-2: var(--bg-2);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-frost: var(--frost);
+  --color-silver: var(--silver);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-ice: var(--ice);
+  --color-copper-text: var(--copper-text);
+
+  --font-display: var(--font-chakra), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  background: var(--bg);
+  color-scheme: dark;
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--silver);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overflow-x: clip;
+}
+
+::selection {
+  background: var(--frost);
+  color: var(--bg);
+}
+
+/* Components live in a layer so Tailwind utilities can override them */
+@layer components {
+  /* Display type: tight tracking and leading as size grows */
+  .display {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.04;
+    color: var(--frost);
+    text-wrap: balance;
+  }
+
+  .eyebrow {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+
+  /* Bronze, matched to the logo — used for the wordmark only */
+  .bronze-text {
+    background: linear-gradient(180deg, #e2ad7c 0%, #c4875a 60%, #a0654b 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .hairline {
+    height: 1px;
+    background: var(--line);
+  }
+
+  /* Floating functional layer — glass only on chrome, never on content */
+  .glass {
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    backdrop-filter: blur(20px) saturate(140%);
+    border: 1px solid rgb(255 255 255 / 0.08);
+  }
+
+  .glass-strong {
+    background: var(--glass-strong);
+    -webkit-backdrop-filter: blur(28px) saturate(150%);
+    backdrop-filter: blur(28px) saturate(150%);
+    border: 1px solid rgb(255 255 255 / 0.08);
+  }
+
+  /* Primary action: near-white with dark text (16.9:1) */
+  .btn-primary {
+    background: var(--frost);
+    color: var(--bg);
+    font-weight: 600;
+  }
+  .btn-primary:hover {
+    background: #ffffff;
+  }
+
+  .btn-secondary {
+    border: 1px solid var(--line-strong);
+    color: var(--frost);
+  }
+  .btn-secondary:hover {
+    background: rgb(255 255 255 / 0.05);
+    border-color: var(--faint);
+  }
+
+  /* Press feedback lands on pointer-down, instantly */
+  .press {
+    transition:
+      transform 180ms var(--ease-out-soft),
+      background-color 220ms ease,
+      border-color 220ms ease,
+      color 220ms ease,
+      opacity 220ms ease;
+  }
+  .press:active {
+    transform: scale(0.97);
+    transition-duration: 80ms;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ice);
+    outline-offset: 3px;
+  }
+
+  /* Horizontal rails: native momentum scrolling + snap, no visible bar */
+  .rail {
+    display: flex;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  .rail::-webkit-scrollbar {
+    display: none;
+  }
+  .rail > * {
+    scroll-snap-align: start;
+  }
+}
+
+/* Partner marquee */
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+.marquee {
+  animation: marquee 45s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .marquee {
+    animation: none;
+  }
+  .press:active {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass,
+  .glass-strong {
+    background: var(--bg-2);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --line: #55555c;
+    --muted: var(--silver);
+    --faint: var(--muted);
+  }
 }
