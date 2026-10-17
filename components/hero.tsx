@@ -3,7 +3,7 @@
 import { getImageProps } from "next/image";
 import { useRef } from "react";
 import { motion, useScroll, useTransform } from "motion/react";
-import { ArrowUpRight, Droplets, Hand, Shield, SprayCan, Sparkles, SunDim } from "lucide-react";
+import { ArrowUpRight, BadgeCheck, Droplets, Shield, SprayCan, Sparkles, SunDim } from "lucide-react";
 import type { ServiceId } from "@/lib/data";
 import { spring, useReducedMotionSafe } from "./motion";
 
@@ -17,7 +17,7 @@ const strip: { label: string; value: string; icon: typeof Shield; service?: Serv
   { label: "Paint correction", value: "4 levels", icon: Sparkles, service: "correction" },
   { label: "Window tints", value: "5% – 80% VLT", icon: SunDim, service: "tint" },
   { label: "Detailing", value: "2 – 8 hours", icon: SprayCan, service: "detailing" },
-  { label: "Every job", value: "Finished by hand", icon: Hand },
+  { label: "Every job", value: "QC checked", icon: BadgeCheck },
 ];
 
 // PLACEHOLDER — swap "#" for the client's real profiles.
@@ -163,16 +163,15 @@ export function Hero() {
           <div className="mt-auto grid gap-5 pb-8 lg:grid-cols-[auto_1fr] lg:items-end lg:gap-12 lg:pb-12">
             <motion.h1
               {...enter(0.2)}
-              className="display text-[2.375rem] [text-shadow:0_2px_24px_rgb(0_0_0/0.4)] sm:text-6xl lg:whitespace-nowrap lg:text-[2.75rem] xl:text-[3.375rem]"
+              className="display text-[2.125rem] [text-shadow:0_2px_24px_rgb(0_0_0/0.4)] sm:text-6xl lg:whitespace-nowrap lg:text-[2.75rem] xl:text-[3.375rem]"
             >
               Where ancient mastery <br className="hidden lg:block" />
               meets modern protection
             </motion.h1>
             <motion.div {...enter(0.3)} className="lg:justify-self-end lg:pb-1.5">
               <p className="max-w-md text-[0.9375rem] leading-relaxed text-silver sm:text-base lg:max-w-sm">
-                Paint protection film, correction, ceramic coatings and tints — every vehicle
-                prepared in our custom-built detail bay, wrapped in a dust-free studio and finished
-                by hand.
+                We bring 7+ years of training and experience from industry experts around the world
+                to your vehicle with the same precision and care as if it were our own.
               </p>
               <a
                 href="#quote"

@@ -43,8 +43,8 @@
   --color-ice: var(--ice);
   --color-copper-text: var(--copper-text);
 
-  --font-display: var(--font-chakra), ui-sans-serif, system-ui, sans-serif;
-  --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+  --font-display: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-geist), ui-sans-serif, -apple-system, BlinkMacSystemFont,
     "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
@@ -79,9 +79,10 @@ body {
   /* Display type: tight tracking and leading as size grows */
   .display {
     font-family: var(--font-display);
-    font-weight: 600;
-    letter-spacing: -0.02em;
-    line-height: 1.04;
+    font-weight: 800;
+    font-stretch: 112%;
+    letter-spacing: -0.025em;
+    line-height: 1.02;
     color: var(--frost);
     text-wrap: balance;
   }

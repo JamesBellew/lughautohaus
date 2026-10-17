@@ -1,11 +1,19 @@
 import type { Metadata, Viewport } from "next";
-import { Chakra_Petch } from "next/font/google";
+import { Archivo, Geist } from "next/font/google";
 import "./globals.css";
 
-const chakra = Chakra_Petch({
-  variable: "--font-chakra",
+/* Display: Archivo with its width axis — set wide and heavy for an automotive feel */
+const archivo = Archivo({
+  variable: "--font-archivo",
   subsets: ["latin"],
-  weight: ["500", "600"],
+  axes: ["wdth"],
+  display: "swap",
+});
+
+/* Text: Geist — clean and legible at small sizes */
+const geist = Geist({
+  variable: "--font-geist",
+  subsets: ["latin"],
   display: "swap",
 });
 
@@ -22,7 +30,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en-IE" className={chakra.variable}>
+    <html lang="en-IE" className={`${archivo.variable} ${geist.variable}`}>
       <body>{children}</body>
     </html>
   );

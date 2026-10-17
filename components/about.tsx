@@ -129,7 +129,7 @@ export function About() {
 
             <h2
               id="about-title"
-              className="display mt-6 min-[700px]:mt-9 lg:mt-6 text-[2.75rem] uppercase leading-[0.98] sm:max-[699px]:text-6xl min-[700px]:text-[clamp(2.25rem,6.8vw,3.5rem)] lg:text-[3.5rem]"
+              className="display mt-6 min-[700px]:mt-9 lg:mt-6 text-[clamp(1.875rem,8.6vw,2.75rem)] uppercase leading-[0.98] sm:max-[699px]:text-5xl min-[700px]:text-[clamp(2rem,5.6vw,3rem)] lg:text-[3.5rem]"
             >
               <KineticLines
                 lines={[
@@ -143,8 +143,10 @@ export function About() {
             </h2>
 
             <p className="mt-6 max-w-md leading-relaxed text-silver min-[700px]:mt-8 min-[700px]:text-lg lg:mt-6 lg:text-base">
-              A specialist paint protection and detailing studio. Every vehicle is perfected in our
-              detail bay, protected with industry-leading film and coatings, and finished by hand.
+              A custom-built paint protection and detailing studio, designed to maximise the
+              efficiency of the effort required to illuminate and protect your vehicle&rsquo;s paint.
+              Every vehicle is meticulously prepped before being protected with industry-leading
+              film and coatings.
             </p>
 
             {/* Progressive disclosure: the full story is one tap away, not on the page by default */}

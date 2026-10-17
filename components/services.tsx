@@ -256,19 +256,30 @@ function Slide({
       className="absolute inset-0 overflow-hidden"
       style={{ x: pos }}
     >
-      <Image
-        src={s.image}
-        alt={s.imageAlt}
-        fill
-        draggable={false}
-        sizes="100vw"
-        quality={85}
-        priority={active}
-        className="pointer-events-none select-none object-cover"
-      />
+      {s.video ? (
+        <SlideVideo s={s} active={active} />
+      ) : (
+        <Image
+          src={s.image}
+          alt={s.imageAlt}
+          fill
+          draggable={false}
+          sizes="100vw"
+          quality={85}
+          priority={active}
+          className={`pointer-events-none select-none object-cover ${s.imagePos ?? ""}`}
+        />
+      )}
       {/* Legibility: a deep fade where the copy sits, lighter elsewhere */}
       <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/70 to-transparent sm:via-bg/45" />
       <div className="absolute inset-0 hidden bg-gradient-to-r from-bg/75 via-bg/25 to-transparent lg:block" />
+      {s.dim && (
+        <>
+          <div className="absolute inset-0 bg-black/25" />
+          <div className="absolute inset-x-0 top-0 h-[38%] bg-gradient-to-b from-black/70 via-black/30 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 h-[65%] bg-gradient-to-t from-bg via-bg/80 to-transparent" />
+        </>
+      )}
 
       <div className="absolute inset-x-0 bottom-0 mx-auto max-w-6xl px-5 pb-20 sm:px-8 lg:px-5 lg:pb-12">
         <div className="max-w-xl">
@@ -303,5 +314,49 @@ function Slide({
         </div>
       </div>
     </motion.article>
+  );
+}
+
+/**
+ * Portrait footage. On portrait screens it fills the slide as shot. On
+ * landscape screens a tall panel sits on the right (where photo subjects
+ * usually are) over a blurred, darkened still of the same clip, so the
+ * 9:16 frame is never stretched or soft. Plays only while its slide is
+ * showing; reduced motion keeps the still.
+ */
+function SlideVideo({ s, active }: { s: Service; active: boolean }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const reduce = useReducedMotionSafe();
+
+  useEffect(() => {
+    const v = ref.current;
+    if (!v) return;
+    if (active && !reduce) v.play().catch(() => {});
+    else v.pause();
+  }, [active, reduce]);
+
+  return (
+    <div className="pointer-events-none absolute inset-0 select-none" aria-hidden>
+      {/* Landscape backdrop: the clip's own still, blurred into atmosphere */}
+      <Image
+        src={s.image}
+        alt=""
+        fill
+        sizes="50vw"
+        className="hidden scale-125 object-cover opacity-50 blur-2xl [@media(min-aspect-ratio:1/1)]:block"
+      />
+      <video
+        ref={ref}
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        poster={s.image}
+        className="absolute inset-0 size-full object-cover [@media(min-aspect-ratio:1/1)]:left-auto [@media(min-aspect-ratio:1/1)]:right-0 [@media(min-aspect-ratio:1/1)]:w-[min(52%,calc(100svh*0.75))] [@media(min-aspect-ratio:1/1)]:[mask-image:linear-gradient(to_right,transparent,black_28%)]"
+      >
+        <source src={s.video!.webm} type="video/webm" />
+        <source src={s.video!.mp4} type="video/mp4" />
+      </video>
+    </div>
   );
 }

@@ -1,5 +1,6 @@
 import { About } from "@/components/about";
 import { Faq } from "@/components/faq";
+import { Finishes } from "@/components/finishes";
 import { Hero } from "@/components/hero";
 import { MobileQuoteBar } from "@/components/mobile-quote-bar";
 import { MotionProvider } from "@/components/motion";
@@ -23,6 +24,7 @@ export default function Home() {
           <About />
           <Services />
           <Results />
+          <Finishes />
           <Packages />
           <Process />
           <Partners />

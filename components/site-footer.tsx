@@ -2,10 +2,10 @@ import { contact, partners, services } from "@/lib/data";
 import { Wordmark } from "./wordmark";
 
 const explore = [
-  { label: "Services", href: "#services" },
-  { label: "Packages", href: "#packages" },
-  { label: "Results", href: "#results" },
   { label: "About", href: "#about" },
+  { label: "Services", href: "#services" },
+  { label: "Results", href: "#results" },
+  { label: "Packages", href: "#packages" },
   { label: "FAQ", href: "#faq" },
 ];
 

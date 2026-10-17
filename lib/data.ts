@@ -14,6 +14,12 @@ export type Service = {
   body: string;
   image: string;
   imageAlt: string;
+  /** Optional object-position classes for tighter (portrait) crops */
+  imagePos?: string;
+  /** Bright photos get an extra top/bottom tint so overlaid text keeps contrast */
+  dim?: boolean;
+  /** Optional portrait background video; `image` doubles as its poster/fallback */
+  video?: { mp4: string; webm: string };
   specs: { label: string; value: string }[];
   from: string;
 };
@@ -89,8 +95,10 @@ export const services: Service[] = [
     short: "Detailing",
     tagline: "Nothing looks right until it's truly clean.",
     body: "Interior and exterior detailing packages, bespoke to your vehicle's needs — from a deep restorative clean to regular maintenance details.",
-    image: "/images/foam-wash-xl.jpg",
-    imageAlt: "Car covered in thick snow foam during a detail wash",
+    image: "/video/detailing-poster.jpg",
+    imageAlt: "A Porsche 911 GT3 covered in snow foam in the Lugh Autohaus detail bay",
+    video: { mp4: "/video/detailing.mp4", webm: "/video/detailing.webm" },
+    dim: true,
     specs: [
       { label: "Turnaround", value: "2–8 hours" },
       { label: "Interior", value: "Deep clean" },
@@ -273,7 +281,7 @@ export const faqs = [
   },
   {
     q: "Can PPF change my car's colour?",
-    a: "Yes. Alongside transparent film, Stek DYNO offers paint-to-match colours, matte finishes and patterns such as forged carbon — all while protecting the original paint underneath.",
+    a: "Yes. Alongside transparent film, the Stek DYNO range includes the Color Series (gloss and matte), DYNOblack, and patterns such as carbon, forged carbon, Damascus and camo — all while protecting the original paint underneath, and fully removable. Try them on the car in the Choose your finish section above.",
   },
 ];
 
