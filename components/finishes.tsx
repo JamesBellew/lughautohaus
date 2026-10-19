@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowUpRight, Check, RotateCcw, X } from "lucide-react";
+import { ArrowUpRight, Check, ChevronDown, RotateCcw, Shuffle, X } from "lucide-react";
 import { series, type Finish, type Series } from "@/lib/finishes";
 import { KineticLines, Reveal, useReducedMotionSafe } from "./motion";
 import { useQuote } from "./quote-context";
@@ -103,13 +103,15 @@ function Texture({ f }: { f: Finish }) {
  *   4. texture– pattern films drawn on top, then the photo's own light
  *               soft-lit back over them so they read as wrapped panels
  */
-const CAR = "/finishes/911-v3.webp";
-const PAINT = "url(/finishes/911-paint-mask-v8.png)";
-const LIGHTS = "url(/finishes/911-lights-mask-v8.png)";
+const CAR = "/finishes/911-v7.webp";
+/** 2× version from the full-resolution original — swapped in once loaded so the lamp zoom stays sharp */
+const CAR_HI = "/finishes/911-v7@2x.webp";
+const PAINT = "url(/finishes/911-paint-mask-v17.png)";
+const LIGHTS = "url(/finishes/911-lights-mask-v17.png)";
 /** Satin shading pre-computed from the photo: body form + every crease, no sky reflections */
-const MATTE = "/finishes/911-matte-v8.webp";
+const MATTE = "/finishes/911-matte-v17.webp";
 /** Fine-line map (0.5 = neutral): panel gaps, shut lines and creases */
-const DETAIL = "/finishes/911-detail-v8.webp";
+const DETAIL = "/finishes/911-detail-v17.webp";
 const BASE_LUM = 0.5;
 
 /**
@@ -122,6 +124,9 @@ const TILE: Record<string, { size: string; light: string }> = {
   "carbon-gloss": { size: "7% auto", light: "grayscale(1) contrast(2.1) brightness(0.8)" },
   "carbon-matte": { size: "9% auto", light: "grayscale(1) contrast(1.4) brightness(0.68)" },
   "camo-black": { size: "26% auto", light: "grayscale(1) contrast(1.8) brightness(0.62)" },
+  "forged-gloss": { size: "11% auto", light: "grayscale(1) contrast(1.8) brightness(1.05)" },
+  "forged-matte": { size: "11% auto", light: "grayscale(1) contrast(1.5) brightness(0.95)" },
+  "forged-metal": { size: "11% auto", light: "grayscale(1) contrast(1.4) brightness(1.3)" },
 }; // average sRGB luminance of the original paint
 
 const masked = (m: string): React.CSSProperties => ({
@@ -142,14 +147,28 @@ function Car({
   f,
   lens,
   zoom = false,
+  film,
   sweepKey,
 }: {
   f: Finish;
   lens?: string;
   zoom?: boolean;
   sweepKey: string;
+  /** Patterned film tile laid over the paint with an overlay blend (carbon clear, camo) */
+  film?: { src: string; size: string; strength?: number };
 }) {
   const reduce = useReducedMotionSafe();
+  // Preload the 2× photo after first paint; swap it in only once fully decoded.
+  const [hiReady, setHiReady] = useState(false);
+  useEffect(() => {
+    const img = new Image();
+    img.src = CAR_HI;
+    let live = true;
+    img.decode().then(() => live && setHiReady(true)).catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
   const matte = f.surface === "matte";
   const lt = luminance(f.color);
   const tone =
@@ -167,18 +186,19 @@ function Car({
       role="img"
       aria-label={zoom ? "Porsche 911 headlight close-up" : `Porsche 911 shown in ${f.name}`}
       className="relative isolate aspect-[1600/704] w-full"
-      // Lights series: turn slightly and push in on the near headlamp,
-      // centred in the frame. Origin is the lamp's centre in the photo.
+      // Lights series: push in on the near headlamp, centred in the frame.
+      // Origin is the lamp's centre in the photo.
       style={{ transformOrigin: "59.3% 49.7%" }}
       animate={
         zoom
-          ? { scale: 3.1, x: "-11%", rotate: -4, rotateY: -32 }
-          : { scale: 1, x: "0%", rotate: 0, rotateY: 0 }
+          ? { scale: 2.8, x: "-9.3%" }
+          : { scale: 1, x: "0%" }
       }
-      transition={{ type: "spring", bounce: 0, duration: reduce ? 0 : 1.1 }}
+      // A straight, eased push-in: slow start, long settle — no rotation, no skew
+      transition={{ duration: reduce ? 0 : 1.15, ease: [0.65, 0, 0.25, 1] }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element -- layered with CSS masks at the same box */}
-      <img src={CAR} alt="" className="absolute inset-0 size-full" draggable={false} />
+      <img src={hiReady ? CAR_HI : CAR} alt="" className="absolute inset-0 size-full" draggable={false} />
 
       {/* 1 · matte: swap the glossy paint for the satin shading map */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -219,6 +239,22 @@ function Car({
         }}
       />
 
+      {/* 3c · clear film: fine weave over whatever paint is underneath — overlay keeps the hue */}
+      {film && (
+        <div
+          aria-hidden
+          className="absolute inset-0"
+          style={{
+            ...paint,
+            backgroundImage: `url(${film.src})`,
+            backgroundSize: film.size,
+            mixBlendMode: "overlay",
+            opacity: film.strength ?? (matte ? 0.75 : 0.95),
+            transition: ease,
+          }}
+        />
+      )}
+
       {/* 3b · extremes: very dark paint gets its reflections back, very light paint its shadows */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -245,7 +281,7 @@ function Car({
       />
 
       {/* 4 · texture films */}
-      {f.pattern && (
+      {f.pattern && !f.film && (
         <>
           {f.tile ? (
             // Photographic film: seamless tile, scaled so flakes/swirls read at car scale
@@ -343,10 +379,139 @@ function BuildDot({ f }: { f: Finish }) {
   );
 }
 
-function Swatch({ f, on, onPick }: { f: Finish; on: boolean; onPick: () => void }) {
+/**
+ * Mobile/tablet picker: one swipeable row of large swatches directly under the
+ * car. Tapping recolours instantly and centres the choice; Shuffle tries a
+ * random finish from the current range.
+ */
+function MobilePicker({
+  s,
+  selected,
+  onPick,
+}: {
+  s: Series;
+  selected: string | null;
+  onPick: (f: Finish) => void;
+}) {
+  const rail = useRef<HTMLDivElement>(null);
+  const all = s.groups.flatMap((g) => g.finishes);
+  const idx = all.findIndex((f) => f.id === selected);
+
+  const choose = (f: Finish) => {
+    onPick(f);
+    requestAnimationFrame(() =>
+      rail.current
+        ?.querySelector<HTMLElement>(`[data-id="${f.id}"]`)
+        ?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" }),
+    );
+  };
+
+  return (
+    <div className="mt-3 lg:hidden">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs text-muted">
+          {idx >= 0 ? `${idx + 1} / ${all.length}` : `${all.length} finishes`}
+          <span className="text-faint"> · swipe to explore</span>
+        </p>
+        {all.length > 2 && (
+          <button
+            type="button"
+            onClick={() => {
+              const pool = all.filter((f) => f.id !== selected);
+              choose(pool[Math.floor(Math.random() * pool.length)]);
+            }}
+            className="press inline-flex h-9 items-center gap-1.5 rounded-full border border-line-strong px-3 text-xs text-silver"
+          >
+            <Shuffle className="size-3.5" aria-hidden />
+            Shuffle
+          </button>
+        )}
+      </div>
+
+      <div
+        ref={rail}
+        role="group"
+        aria-label={`${s.title} finishes`}
+        className="rail -mx-5 mt-1 gap-3 px-5 pb-2 pt-2 [scroll-padding-inline:1.25rem] sm:-mx-8 sm:px-8 [scroll-snap-type:x_proximity]"
+      >
+        {s.groups.map((grp, gi) => (
+          <div key={gi} className="flex shrink-0 gap-3">
+            {grp.label && s.groups.length > 1 && (
+              <span className="flex w-5 shrink-0 items-center justify-center">
+                <span className="text-[0.625rem] font-medium uppercase tracking-[0.16em] text-faint [writing-mode:vertical-rl] rotate-180">
+                  {grp.label}
+                </span>
+              </span>
+            )}
+            {grp.finishes.map((f) => {
+              const on = f.id === selected;
+              return (
+                <button
+                  key={f.id}
+                  data-id={f.id}
+                  type="button"
+                  aria-pressed={on}
+                  aria-label={f.name}
+                  onClick={() => choose(f)}
+                  className="flex w-[4.5rem] shrink-0 flex-col items-center gap-1.5"
+                >
+                  <SwatchFace f={f} on={on} />
+                  <span className={`w-full truncate text-center text-[0.6875rem] ${on ? "text-frost" : "text-muted"}`}>
+                    {f.name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** The swatch chip itself — shared by the desktop grid and the mobile rail */
+function SwatchFace({ f, on }: { f: Finish; on: boolean }) {
   const bg = f.flip
     ? `linear-gradient(135deg, ${f.flip[0]}, ${f.flip[1]} 55%, ${f.flip[0]})`
     : f.color;
+  return (
+      <span
+      className={`press relative block aspect-square w-full overflow-hidden rounded-xl ring-1 transition-[box-shadow,transform] duration-300 ${
+        on ? "ring-2 ring-frost ring-offset-2 ring-offset-bg" : "ring-white/10 group-hover:ring-white/30"
+      }`}
+      style={{ background: bg }}
+    >
+      {f.tile && (
+        <span
+          aria-hidden
+          className="absolute inset-0"
+          style={{ backgroundImage: `url(${f.tile})`, backgroundSize: "160%" }}
+        />
+      )}
+      {f.pattern && !f.tile && (
+        <svg className="absolute inset-0 size-full" aria-hidden>
+          <defs>
+            <Texture f={{ ...f, id: `sw-${f.id}` }} />
+          </defs>
+          <rect width="100%" height="100%" fill={`url(#tex-sw-${f.id})`} />
+        </svg>
+      )}
+      {/* Gloss gets a highlight; matte stays flat */}
+      <span
+        className={`absolute inset-0 ${
+          f.surface === "gloss"
+            ? "bg-[linear-gradient(150deg,rgb(255_255_255/0.35),transparent_45%)]"
+            : "bg-[linear-gradient(150deg,rgb(255_255_255/0.08),transparent_60%)]"
+        }`}
+      />
+      {on && (
+        <Check className="absolute bottom-1.5 right-1.5 size-4 rounded-full bg-frost p-0.5 text-bg" aria-hidden />
+      )}
+    </span>
+  );
+}
+
+function Swatch({ f, on, onPick }: { f: Finish; on: boolean; onPick: () => void }) {
   return (
     <button
       type="button"
@@ -356,39 +521,7 @@ function Swatch({ f, on, onPick }: { f: Finish; on: boolean; onPick: () => void 
       aria-label={f.name}
       className="group flex flex-col items-start gap-1.5 text-left"
     >
-      <span
-        className={`press relative block aspect-square w-full overflow-hidden rounded-xl ring-1 transition-[box-shadow,transform] duration-300 ${
-          on ? "ring-2 ring-frost ring-offset-2 ring-offset-bg" : "ring-white/10 group-hover:ring-white/30"
-        }`}
-        style={{ background: bg }}
-      >
-        {f.tile && (
-          <span
-            aria-hidden
-            className="absolute inset-0"
-            style={{ backgroundImage: `url(${f.tile})`, backgroundSize: "160%" }}
-          />
-        )}
-        {f.pattern && !f.tile && (
-          <svg className="absolute inset-0 size-full" aria-hidden>
-            <defs>
-              <Texture f={{ ...f, id: `sw-${f.id}` }} />
-            </defs>
-            <rect width="100%" height="100%" fill={`url(#tex-sw-${f.id})`} />
-          </svg>
-        )}
-        {/* Gloss gets a highlight; matte stays flat */}
-        <span
-          className={`absolute inset-0 ${
-            f.surface === "gloss"
-              ? "bg-[linear-gradient(150deg,rgb(255_255_255/0.35),transparent_45%)]"
-              : "bg-[linear-gradient(150deg,rgb(255_255_255/0.08),transparent_60%)]"
-          }`}
-        />
-        {on && (
-          <Check className="absolute bottom-1.5 right-1.5 size-4 rounded-full bg-frost p-0.5 text-bg" aria-hidden />
-        )}
-      </span>
+      <SwatchFace f={f} on={on} />
       <span className={`text-xs leading-tight ${on ? "text-frost" : "text-muted"}`}>{f.name}</span>
     </button>
   );
@@ -405,13 +538,22 @@ export function Finishes() {
   const [bodyId, setBodyId] = useState("miami-blue");
   const [lensId, setLensId] = useState<string | null>(null);
   const body = everything.find((f) => f.id === bodyId)!;
+  // Clear films sit on top of the last real paint choice
+  const [baseId, setBaseId] = useState("miami-blue");
+  const base = everything.find((f) => f.id === baseId)!;
+  const paintF = body.overlay ? base : body;
   const lensF = lensId ? everything.find((f) => f.id === lensId) ?? null : null;
   const bodySeries = series.find((x) => x.groups.some((g) => g.finishes.some((f) => f.id === bodyId)))!;
 
   const isLight = sid === "light";
   // What the header and quote button talk about on this tab
   const current: Finish | null = isLight ? lensF : all.some((f) => f.id === bodyId) ? body : null;
-  const pick = (f: Finish) => (isLight ? setLensId(f.id) : setBodyId(f.id));
+  const [info, setInfo] = useState(false);
+  const pick = (f: Finish) => {
+    if (isLight) return setLensId(f.id);
+    setBodyId(f.id);
+    if (!f.overlay) setBaseId(f.id);
+  };
 
   return (
     <section id="finishes" aria-labelledby="finishes-title" className="pt-24 sm:pt-32">
@@ -464,10 +606,10 @@ export function Finishes() {
         <div
           id="finish-panel"
           role="tabpanel"
-          className="mt-6 grid gap-6 overflow-hidden rounded-[28px] border border-line bg-bg-2 p-5 sm:p-8 lg:grid-cols-[1.25fr_1fr] lg:gap-10 lg:p-10"
+          className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-6 overflow-hidden rounded-[28px] border border-line bg-bg-2 p-5 sm:p-8 lg:grid-cols-[1.25fr_1fr] lg:gap-10 lg:p-10"
         >
           {/* Stage */}
-          <div className="relative flex flex-col lg:sticky lg:top-24 lg:self-start">
+          <div className="relative flex min-w-0 flex-col lg:sticky lg:top-24 lg:self-start">
             <div className="flex items-baseline justify-between gap-4">
               <AnimatePresence mode="wait" initial={false}>
                 <motion.p
@@ -485,9 +627,28 @@ export function Finishes() {
               </span>
             </div>
 
-            <div className="relative mt-4 flex aspect-[16/10] items-center overflow-hidden rounded-2xl [perspective:1100px] bg-[radial-gradient(70%_60%_at_50%_65%,rgb(255_255_255/0.08),transparent_70%)] px-2">
-              <Car f={body} lens={lensF?.color} zoom={isLight} sweepKey={`${bodyId}-${lensId}`} />
+            <div className="relative mt-4 flex aspect-[16/10] items-center overflow-hidden rounded-2xl bg-[radial-gradient(70%_60%_at_50%_65%,rgb(255_255_255/0.08),transparent_70%)] px-2">
+              <Car
+                f={paintF}
+                film={
+                  body.overlay && body.tile
+                    ? { src: body.tile, size: "3.6% auto" }
+                    : body.film && body.tile
+                      ? { src: body.tile, ...body.film }
+                      : undefined
+                }
+                lens={lensF?.color}
+                zoom={isLight}
+                sweepKey={`${bodyId}-${baseId}-${lensId}`}
+              />
             </div>
+
+            {/* Phones & tablets: the picker lives right under the car */}
+            <MobilePicker
+              s={s}
+              selected={isLight ? lensId : bodyId}
+              onPick={pick}
+            />
             {/* Your build: everything chosen so far, kept across tabs */}
             <div className="mt-4 rounded-2xl border border-line bg-bg/60 p-3 sm:p-4">
               <div className="flex items-center justify-between gap-3">
@@ -499,6 +660,7 @@ export function Finishes() {
                     type="button"
                     onClick={() => {
                       setBodyId("miami-blue");
+                      setBaseId("miami-blue");
                       setLensId(null);
                     }}
                     className="press inline-flex min-h-8 items-center gap-1 rounded-full px-2 text-xs text-muted hover:text-frost"
@@ -517,7 +679,7 @@ export function Finishes() {
                   >
                     <BuildDot f={body} />
                     <span className="text-muted">Body</span>
-                    {body.name}
+                    {body.overlay ? `${body.name} over ${base.name}` : body.name}
                   </button>
                 </li>
                 <li>
@@ -589,6 +751,22 @@ export function Finishes() {
               transition={{ type: "spring", bounce: 0, duration: 0.45 }}
               className="flex flex-col"
             >
+              <button
+                type="button"
+                aria-expanded={info}
+                onClick={() => setInfo((v) => !v)}
+                className="press flex min-h-12 w-full items-center justify-between gap-3 rounded-2xl border border-line px-4 text-left text-sm text-frost lg:hidden"
+              >
+                <span>
+                  <span className="text-muted">About </span>
+                  {s.title}
+                </span>
+                <ChevronDown
+                  className={`size-4 shrink-0 text-muted transition-transform duration-300 ${info ? "rotate-180" : ""}`}
+                  aria-hidden
+                />
+              </button>
+              <div className={`${info ? "mt-5 block" : "hidden"} lg:mt-0 lg:block`}>
               <h3 className="display text-2xl sm:text-3xl">{s.title}</h3>
               <p className="mt-2 text-silver">{s.lede}</p>
               <p className="mt-3 text-[0.9375rem] leading-relaxed text-muted">{s.body}</p>
@@ -604,7 +782,9 @@ export function Finishes() {
                 ))}
               </ul>
 
-              <div className="mt-7 space-y-5">
+              </div>
+
+              <div className="mt-7 hidden space-y-5 lg:block">
                 {s.groups.map((grp, gi) => (
                   <div key={gi}>
                     {grp.label && (
@@ -626,7 +806,7 @@ export function Finishes() {
                 ))}
               </div>
 
-              <div className="mt-auto flex flex-wrap items-center gap-x-5 gap-y-3 pt-8">
+              <div className="mt-auto flex flex-wrap items-center gap-x-5 gap-y-3 pt-6 lg:pt-8">
                 <button
                   type="button"
                   onClick={() => startQuote(isLight && !current ? "tint" : "ppf")}

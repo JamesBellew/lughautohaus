@@ -15,9 +15,12 @@ export function MobileQuoteBar() {
   useMotionValueEvent(scrollY, "change", (y) => {
     const vh = window.innerHeight;
     const quoteTop = document.getElementById("quote")?.getBoundingClientRect().top ?? Infinity;
-    // Full-screen services slides carry their own quote button — step aside there.
-    const svc = document.getElementById("services")?.getBoundingClientRect();
-    const overServices = svc ? svc.top < vh * 0.5 && svc.bottom > vh * 0.5 : false;
+    // Full-screen services slides and the finish picker carry their own actions.
+    const over = (id: string) => {
+      const r = document.getElementById(id)?.getBoundingClientRect();
+      return r ? r.top < vh * 0.75 && r.bottom > vh * 0.25 : false;
+    };
+    const overServices = over("services") || over("finishes");
     setShow(y > vh * 0.85 && quoteTop > vh * 0.9 && !overServices);
   });
 

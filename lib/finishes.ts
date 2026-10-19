@@ -18,6 +18,10 @@ export type Finish = {
   pattern?: "carbon" | "forged" | "camo" | "damascus";
   /** Seamless image tile for photographic patterns; overrides the drawn texture */
   tile?: string;
+  /** Transparent film laid over the chosen paint rather than replacing it */
+  overlay?: boolean;
+  /** Tile laid over this finish's own paint colour (overlay blend), e.g. camo */
+  film?: { size: string; strength?: number };
   /** Texture ink colour (pattern films) */
   ink?: string;
   /** Prism films shift colour; drawn with a gradient */
@@ -121,15 +125,15 @@ export const series: Series[] = [
     groups: [
       {
         finishes: [
-          g("camo", "Camo", "#cfd2cd", "#8b8f8a", { pattern: "camo", ink: "#9ea39c" }),
+          g("camo", "Camo", "#5d6268", "#3a3d41", { pattern: "camo", ink: "#9ea39c", tile: "/finishes/camo-v2.webp", film: { size: "20% auto", strength: 0.78 } }),
           g("camo-black", "Camo black", "#121315", "#060607", { pattern: "camo", ink: "#57595c", tile: "/finishes/camo-black-v1.webp" }),
           g("damascus-black", "Damascus black", "#0f1011", "#050506", { pattern: "damascus", ink: "#8b8e92", tile: "/finishes/damascus-black-v3.webp" }),
-          g("carbon-clear", "Carbon clear", "#d9dbd8", "#9c9f9b", { pattern: "carbon", ink: "#b9bcb8" }),
+          g("carbon-clear", "Carbon clear", "#8d939a", "#5b6066", { pattern: "carbon", ink: "#b9bcb8", tile: "/finishes/carbon-clear-v2.webp", overlay: true }),
           m("carbon-matte", "Carbon matte", "#151618", "#08090a", { pattern: "carbon", ink: "#1a1b1c", tile: "/finishes/carbon-matte-v1.webp" }),
           g("carbon-gloss", "Carbon gloss", "#111214", "#050506", { pattern: "carbon", ink: "#121315", tile: "/finishes/carbon-gloss-v1.webp" }),
-          g("forged-gloss", "Forged gloss", "#2a2b2e", "#0d0e10", { pattern: "forged", ink: "#55585d" }),
-          g("forged-metal", "Forged metal", "#4a4d51", "#1e2023", { pattern: "forged", ink: "#8d9196" }),
-          m("forged-matte", "Forged matte", "#222325", "#0d0e0f", { pattern: "forged", ink: "#3c3e41" }),
+          g("forged-gloss", "Forged gloss", "#141517", "#060607", { pattern: "forged", ink: "#55585d", tile: "/finishes/forged-gloss-v1.webp" }),
+          g("forged-metal", "Forged metal", "#2a2c30", "#121315", { pattern: "forged", ink: "#8d9196", tile: "/finishes/forged-metal-v1.webp" }),
+          m("forged-matte", "Forged matte", "#141517", "#070708", { pattern: "forged", ink: "#3c3e41", tile: "/finishes/forged-matte-v1.webp" }),
           g("forged-red", "Forged red wine", "#1d060c", "#0a0204", { pattern: "forged", ink: "#c0203f", tile: "/finishes/forged-red-v3.webp" }),
         ],
       },
