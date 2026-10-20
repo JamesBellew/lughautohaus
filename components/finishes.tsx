@@ -103,16 +103,62 @@ function Texture({ f }: { f: Finish }) {
  *   4. texture– pattern films drawn on top, then the photo's own light
  *               soft-lit back over them so they read as wrapped panels
  */
-const CAR = "/finishes/911-v7.webp";
-/** 2× version from the full-resolution original — swapped in once loaded so the lamp zoom stays sharp */
-const CAR_HI = "/finishes/911-v7@2x.webp";
-const PAINT = "url(/finishes/911-paint-mask-v17.png)";
-const LIGHTS = "url(/finishes/911-lights-mask-v17.png)";
-/** Satin shading pre-computed from the photo: body form + every crease, no sky reflections */
-const MATTE = "/finishes/911-matte-v17.webp";
-/** Fine-line map (0.5 = neutral): panel gaps, shut lines and creases */
-const DETAIL = "/finishes/911-detail-v17.webp";
-const BASE_LUM = 0.5;
+type CarModel = {
+  id: "porsche" | "bmw";
+  label: string;
+  name: string;
+  car: string;
+  /** 2× version from the full-resolution original — swapped in once loaded so the lamp zoom stays sharp */
+  carHi: string;
+  paint: string;
+  lights: string;
+  /** Satin shading pre-computed from the photo: body form + every crease, no sky reflections */
+  matte: string;
+  /** Fine-line map (0.5 = neutral): panel gaps, shut lines and creases */
+  detail: string;
+  w: number;
+  h: number;
+  /** average sRGB luminance of the original paint */
+  baseLum: number;
+  /** Lights series: origin = lamp centre in the photo; x/y re-centre it in the frame */
+  zoom: { origin: string; scale: number; x: string; y: string };
+  credit: { author: string; file: string };
+};
+
+const MODELS: CarModel[] = [
+  {
+    id: "porsche",
+    label: "Porsche",
+    name: "Porsche 911 Turbo S",
+    car: "/finishes/911-v8.webp",
+    carHi: "/finishes/911-v8@2x.webp",
+    paint: "url(/finishes/911-paint-mask-v18.png)",
+    lights: "url(/finishes/911-lights-mask-v18.png)",
+    matte: "/finishes/911-matte-v18.webp",
+    detail: "/finishes/911-detail-v18.webp",
+    w: 1600,
+    h: 704,
+    baseLum: 0.5,
+    zoom: { origin: "59.3% 49.7%", scale: 2.8, x: "-9.3%", y: "0%" },
+    credit: { author: "Ethan Llamas", file: "Porsche_911_992.1_Turbo_S_(US-spec)_Arctic_Grey_02.jpg" },
+  },
+  {
+    id: "bmw",
+    label: "BMW",
+    name: "BMW M3 Competition",
+    car: "/finishes/bmw-v3.webp",
+    carHi: "/finishes/bmw-v3@2x.webp",
+    paint: "url(/finishes/bmw-paint-mask-v4.png)",
+    lights: "url(/finishes/bmw-lights-mask-v4.png)",
+    matte: "/finishes/bmw-matte-v4.webp",
+    detail: "/finishes/bmw-detail-v4.webp",
+    w: 1600,
+    h: 724,
+    baseLum: 0.59,
+    zoom: { origin: "64.7% 56.5%", scale: 1.6, x: "-14.7%", y: "-6.5%" },
+    credit: { author: "Alexander-93", file: "BMW_M3_Competition_(G80)_IMG_1176.jpg" },
+  },
+];
 
 /**
  * Per-film tile scale and how strongly the photo's light reveals the pattern.
@@ -138,18 +184,20 @@ const masked = (m: string): React.CSSProperties => ({
 
 function luminance(hex: string) {
   const m = hex.match(/^#([0-9a-f]{6})$/i);
-  if (!m) return BASE_LUM;
+  if (!m) return 0.5;
   const n = parseInt(m[1], 16);
   return (((n >> 16) & 255) * 0.2126 + ((n >> 8) & 255) * 0.7152 + (n & 255) * 0.0722) / 255;
 }
 
 function Car({
+  model: M,
   f,
   lens,
   zoom = false,
   film,
   sweepKey,
 }: {
+  model: CarModel;
   f: Finish;
   lens?: string;
   zoom?: boolean;
@@ -162,48 +210,48 @@ function Car({
   const [hiReady, setHiReady] = useState(false);
   useEffect(() => {
     const img = new Image();
-    img.src = CAR_HI;
+    img.src = M.carHi;
     let live = true;
     img.decode().then(() => live && setHiReady(true)).catch(() => {});
     return () => {
       live = false;
     };
-  }, []);
+  }, [M.carHi]);
   const matte = f.surface === "matte";
   const lt = luminance(f.color);
   const tone =
-    lt < BASE_LUM
-      ? { mode: "multiply" as const, g: Math.max(0.12, lt / BASE_LUM) }
-      : { mode: "screen" as const, g: (lt - BASE_LUM) / (1 - BASE_LUM) };
+    lt < M.baseLum
+      ? { mode: "multiply" as const, g: Math.max(0.12, lt / M.baseLum) }
+      : { mode: "screen" as const, g: (lt - M.baseLum) / (1 - M.baseLum) };
   const grey = Math.round(tone.g * 255);
-  const dark = Math.min(1, Math.max(0, (BASE_LUM - lt) / BASE_LUM));
-  const light = Math.min(1, Math.max(0, (lt - BASE_LUM) / (1 - BASE_LUM)));
-  const paint = masked(PAINT);
+  const dark = Math.min(1, Math.max(0, (M.baseLum - lt) / M.baseLum));
+  const light = Math.min(1, Math.max(0, (lt - M.baseLum) / (1 - M.baseLum)));
+  const paint = masked(M.paint);
   const ease = "background 600ms ease, opacity 600ms ease";
 
   return (
     <motion.div
       role="img"
-      aria-label={zoom ? "Porsche 911 headlight close-up" : `Porsche 911 shown in ${f.name}`}
-      className="relative isolate aspect-[1600/704] w-full"
+      aria-label={zoom ? `${M.name} headlight close-up` : `${M.name} shown in ${f.name}`}
+      className="relative isolate w-full"
       // Lights series: push in on the near headlamp, centred in the frame.
       // Origin is the lamp's centre in the photo.
-      style={{ transformOrigin: "59.3% 49.7%" }}
+      style={{ transformOrigin: M.zoom.origin, aspectRatio: `${M.w} / ${M.h}` }}
       animate={
         zoom
-          ? { scale: 2.8, x: "-9.3%" }
-          : { scale: 1, x: "0%" }
+          ? { scale: M.zoom.scale, x: M.zoom.x, y: M.zoom.y }
+          : { scale: 1, x: "0%", y: "0%" }
       }
       // A straight, eased push-in: slow start, long settle — no rotation, no skew
       transition={{ duration: reduce ? 0 : 1.15, ease: [0.65, 0, 0.25, 1] }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element -- layered with CSS masks at the same box */}
-      <img src={hiReady ? CAR_HI : CAR} alt="" className="absolute inset-0 size-full" draggable={false} />
+      <img src={hiReady ? M.carHi : M.car} alt="" className="absolute inset-0 size-full" draggable={false} />
 
       {/* 1 · matte: swap the glossy paint for the satin shading map */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={MATTE}
+        src={M.matte}
         alt=""
         aria-hidden
         draggable={false}
@@ -214,7 +262,7 @@ function Car({
       {/* 1b · bodywork detail: keeps panel gaps and creases legible in every colour */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={DETAIL}
+        src={M.detail}
         alt=""
         aria-hidden
         draggable={false}
@@ -258,7 +306,7 @@ function Car({
       {/* 3b · extremes: very dark paint gets its reflections back, very light paint its shadows */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={CAR}
+        src={M.car}
         alt=""
         aria-hidden
         draggable={false}
@@ -272,7 +320,7 @@ function Car({
       />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={MATTE}
+        src={M.matte}
         alt=""
         aria-hidden
         draggable={false}
@@ -298,7 +346,7 @@ function Car({
               />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={CAR}
+                src={M.car}
                 alt=""
                 draggable={false}
                 className="absolute inset-0 size-full"
@@ -310,7 +358,7 @@ function Car({
             </div>
           ) : (
             <svg
-              viewBox="0 0 1600 704"
+              viewBox={`0 0 ${M.w} ${M.h}`}
               preserveAspectRatio="none"
               className="absolute inset-0 size-full"
               style={{ ...paint, opacity: 0.9 }}
@@ -319,13 +367,13 @@ function Car({
               <defs>
                 <Texture f={{ ...f, id: `car-${f.id}` }} />
               </defs>
-              <rect width="1600" height="704" fill={`url(#tex-car-${f.id})`} />
+              <rect width={M.w} height={M.h} fill={`url(#tex-car-${f.id})`} />
             </svg>
           )}
           {/* the photo's own light and shade, laid back over the film */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={CAR}
+            src={M.car}
             alt=""
             aria-hidden
             draggable={false}
@@ -339,7 +387,7 @@ function Car({
       {lens && (
         <div
           className="absolute inset-0"
-          style={{ ...masked(LIGHTS), background: lens, mixBlendMode: "multiply", transition: ease }}
+          style={{ ...masked(M.lights), background: lens, mixBlendMode: "multiply", transition: ease }}
         />
       )}
 
@@ -364,6 +412,47 @@ function Car({
       {/* grounding shadow */}
       <div className="absolute inset-x-[4%] -bottom-[3%] -z-10 h-[10%] rounded-[50%] bg-black/70 blur-xl" />
     </motion.div>
+  );
+}
+
+/** Simplified marque emblems for the car selector */
+function BmwRoundel() {
+  return (
+    <svg viewBox="0 0 40 40" className="size-7" aria-hidden>
+      <circle cx="20" cy="20" r="19" fill="#111" stroke="#9aa0a6" strokeWidth="1" />
+      <circle cx="20" cy="20" r="12.5" fill="#fff" />
+      <path d="M20 20V7.5A12.5 12.5 0 0 1 32.5 20Z" fill="#1c69d4" />
+      <path d="M20 20v12.5A12.5 12.5 0 0 1 7.5 20Z" fill="#1c69d4" />
+      <circle cx="20" cy="20" r="12.5" fill="none" stroke="#c9ccd0" strokeWidth="0.8" />
+      <text x="20" y="6.6" textAnchor="middle" fontSize="5" fontWeight="700" fill="#fff" fontFamily="sans-serif" style={{ letterSpacing: "1.2px" }}>
+        BMW
+      </text>
+    </svg>
+  );
+}
+
+function PorscheCrest() {
+  return (
+    <svg viewBox="0 0 34 42" className="h-8 w-7" aria-hidden>
+      <path d="M3 4c5-3 23-3 28 0 1 13 0 22-4 29-3 4-7 6-10 8-3-2-7-4-10-8C3 26 2 17 3 4Z" fill="#c9a24a" stroke="#6b5420" strokeWidth="0.8" />
+      <rect x="4" y="5" width="26" height="4" fill="#111" />
+      <text x="17" y="8.3" textAnchor="middle" fontSize="3.2" fontWeight="700" fill="#c9a24a" fontFamily="sans-serif" style={{ letterSpacing: "0.5px" }}>
+        PORSCHE
+      </text>
+      {/* quartered stripes (Württemberg) */}
+      {[0, 1, 2].map((i) => (
+        <rect key={`a${i}`} x="5" y={11 + i * 3.4} width="11" height="1.7" fill={i % 2 ? "#111" : "#b3202a"} />
+      ))}
+      {[0, 1, 2].map((i) => (
+        <rect key={`b${i}`} x="18" y={22 + i * 3.4} width="11" height="1.7" fill={i % 2 ? "#111" : "#b3202a"} />
+      ))}
+      {/* antlers */}
+      <path d="M19 12q4 1 9 0M19 15q4 1 9 0M19 18q4 1 9 0" stroke="#111" strokeWidth="1" fill="none" />
+      <path d="M6 23q4 1 9 0M6 26q4 1 9 0M6 29q4 1 9 0" stroke="#111" strokeWidth="1" fill="none" />
+      {/* centre escutcheon */}
+      <path d="M13 17h8v6c0 3-2 4-4 5-2-1-4-2-4-5Z" fill="#d8b45a" stroke="#111" strokeWidth="0.6" />
+      <path d="M15 25l1-3 1-1 1 1v-2l1 1-1 3h-2Z" fill="#111" />
+    </svg>
   );
 }
 
@@ -549,6 +638,8 @@ export function Finishes() {
   // What the header and quote button talk about on this tab
   const current: Finish | null = isLight ? lensF : all.some((f) => f.id === bodyId) ? body : null;
   const [info, setInfo] = useState(false);
+  const [modelId, setModelId] = useState<CarModel["id"]>("porsche");
+  const model = MODELS.find((m) => m.id === modelId)!;
   const pick = (f: Finish) => {
     if (isLight) return setLensId(f.id);
     setBodyId(f.id);
@@ -571,9 +662,38 @@ export function Finishes() {
           </p>
         </Reveal>
 
+        {/* Car selector */}
+        <Reveal delay={0.05}>
+          <div role="radiogroup" aria-label="Car" className="mt-9 flex gap-2">
+            {MODELS.map((c) => {
+              const on = c.id === model.id;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  onClick={() => setModelId(c.id)}
+                  className={`press flex h-14 items-center gap-3 rounded-2xl border pl-2 pr-4 text-left transition-colors ${
+                    on ? "border-frost bg-white/[0.06]" : "border-line hover:border-line-strong"
+                  }`}
+                >
+                  <span className="grid size-10 place-items-center rounded-xl bg-white/[0.06]">
+                    {c.id === "porsche" ? <PorscheCrest /> : <BmwRoundel />}
+                  </span>
+                  <span className="leading-tight">
+                    <span className={`block text-sm font-medium ${on ? "text-frost" : "text-silver"}`}>{c.label}</span>
+                    <span className="block text-[0.6875rem] text-muted">{c.name.replace(`${c.label} `, "")}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </Reveal>
+
         {/* Series selector */}
         <Reveal delay={0.05}>
-          <div role="tablist" aria-label="Film series" className="rail -mx-5 mt-9 gap-2 px-5 sm:mx-0 sm:px-0">
+          <div role="tablist" aria-label="Film series" className="rail -mx-5 mt-4 gap-2 px-5 sm:mx-0 sm:px-0">
             {series.map((x) => {
               const on = x.id === sid;
               return (
@@ -629,6 +749,8 @@ export function Finishes() {
 
             <div className="relative mt-4 flex aspect-[16/10] items-center overflow-hidden rounded-2xl bg-[radial-gradient(70%_60%_at_50%_65%,rgb(255_255_255/0.08),transparent_70%)] px-2">
               <Car
+                key={model.id}
+                model={model}
                 f={paintF}
                 film={
                   body.overlay && body.tile
@@ -722,11 +844,11 @@ export function Finishes() {
               Car photo:{" "}
               <a
                 className="underline underline-offset-2 hover:text-muted"
-                href="https://commons.wikimedia.org/wiki/File:Porsche_911_992.1_Turbo_S_(US-spec)_Arctic_Grey_02.jpg"
+                href={`https://commons.wikimedia.org/wiki/File:${model.credit.file}`}
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Ethan Llamas
+                {model.credit.author}
               </a>
               ,{" "}
               <a
